@@ -21,7 +21,16 @@ on:
         required: true
         default: '192.168.1.1'
         type: string
-        
+      WIFI_SSID:
+        description: '无线网络名称(WiFi名)'
+        required: true
+        default: 'ImmortalWrt'
+        type: string
+      WIFI_PASS:
+        description: '无线网络密码'
+        required: true
+        default: '12345678'
+        type: string
       OP_router:
         description: '路由器类型'     
         required: true
@@ -51,6 +60,9 @@ jobs:
       CORE_PW: password
       #默认地址
       CORE_IP: ${{ github.event.inputs.OP_IP }}
+      #WiFi无线名称和密码
+      CORE_WIFI_SSID: ${{ github.event.inputs.WIFI_SSID }}
+      CORE_WIFI_PASS: ${{ github.event.inputs.WIFI_PASS }}
       #默认源码
       CORE_URL: https://github.com/immortalwrt/immortalwrt
       #源码版本
@@ -68,7 +80,7 @@ jobs:
       # 单独处理脚本 -- soc 目录 不执行: false 没有执行cd openwrt
       CORE_SOC_P1_SH: false
       CORE_SOC_P2_SH: false
-      # 通用脚本 -- Scripts  目录 不执行: false 已经执行cd openwrt
+      # 通用脚本 -- Scripts  目录 不执行cd openwrt
       CORE_DIY_P1_SH: setup.sh
       CORE_DIY_P2_SH: Settings.sh
       #####################################
