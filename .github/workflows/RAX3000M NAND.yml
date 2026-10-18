@@ -19,12 +19,17 @@ on:
       OP_IP:
         description: 'IP选项'     
         required: true
-        default: '192.168.1.1'
+        default: '192.168.2.1'
+        type: string
+      ROUTER_NAME:
+        description: '路由器主机名'
+        required: true
+        default: 'Rax3000M-NAND'
         type: string
       WIFI_SSID:
         description: '无线网络名称(WiFi名)'
         required: true
-        default: 'ImmortalWrt'
+        default: 'Tenda_3886E0'
         type: string
       WIFI_PASS:
         description: '无线网络密码'
@@ -54,8 +59,8 @@ jobs:
       CORE_TARGET: Rax3000m-nand
       #默认主题
       CORE_THEME: ${{ github.event.inputs.theme }}
-      #默认主机名
-      CORE_NAME: Rax3000M-NAND
+      #路由器主机名（新增）
+      CORE_NAME: ${{ github.event.inputs.ROUTER_NAME }}
       #默认密码，仅作展示，更改无效
       CORE_PW: password
       #默认地址
