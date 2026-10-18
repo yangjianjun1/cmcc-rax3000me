@@ -26,13 +26,23 @@ on:
         required: true
         default: 'Rax3000M-NAND'
         type: string
-      WIFI_SSID:
-        description: '无线网络名称(WiFi名)'
+      WIFI24_SSID:
+        description: '2.4G WiFi名称'
         required: true
         default: 'Tenda_3886E0'
         type: string
-      WIFI_PASS:
-        description: '无线网络密码'
+      WIFI24_PASS:
+        description: '2.4G WiFi密码'
+        required: true
+        default: '12345678'
+        type: string
+      WIFI5G_SSID:
+        description: '5G WiFi名称'
+        required: true
+        default: 'Tenda_3886E0-5G'
+        type: string
+      WIFI5G_PASS:
+        description: '5G WiFi密码'
         required: true
         default: '12345678'
         type: string
@@ -59,16 +69,13 @@ jobs:
       CORE_TARGET: Rax3000m-nand
       #默认主题
       CORE_THEME: ${{ github.event.inputs.theme }}
-      #路由器主机名（新增）
+      #路由器主机名
       CORE_NAME: ${{ github.event.inputs.ROUTER_NAME }}
       #默认密码，仅作展示，更改无效
       CORE_PW: password
       #默认地址
       CORE_IP: ${{ github.event.inputs.OP_IP }}
-      #WiFi无线名称和密码
-      CORE_WIFI_SSID: ${{ github.event.inputs.WIFI_SSID }}
-      CORE_WIFI_PASS: ${{ github.event.inputs.WIFI_PASS }}
-      #默认源码
+      #源码
       CORE_URL: https://github.com/immortalwrt/immortalwrt
       #源码版本
       CORE_BRANCH: openwrt-25.12
@@ -96,7 +103,7 @@ jobs:
       CORE_DIY_P4_SH: false
       # 删除不兼容的插件 -- remove 目录 不执行: false 已经执行cd openwrt
       CORE_remove: false
-      # 修正files配置文件脚本 -- remove  目录 不执行: false 已经执行cd openwrt
+      # 核心：调用edit_files.sh 动态写入分开的2.4G/5G无线配置
       CORE_Files_SH: edit_files.sh
       # linux 内核
       CORE_LINUX: 6.6.30
