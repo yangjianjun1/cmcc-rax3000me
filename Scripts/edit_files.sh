@@ -5,6 +5,24 @@ WIFI24_PASS="${{ github.event.inputs.WIFI24_PASS }}"
 WIFI5G_SSID="${{ github.event.inputs.WIFI5G_SSID }}"
 WIFI5G_PASS="${{ github.event.inputs.WIFI5G_PASS }}"
 
+# 判断2.4G加密
+if [ -z "$WIFI24_PASS" ]; then
+    ENC24="none"
+    KEY24=""
+else
+    ENC24="psk2"
+    KEY24="option key '$WIFI24_PASS'"
+fi
+
+# 判断5G加密
+if [ -z "$WIFI5G_PASS" ]; then
+    ENC5G="none"
+    KEY5G=""
+else
+    ENC5G="psk2"
+    KEY5G="option key '$WIFI5G_PASS'"
+fi
+
 # 写入 /etc/config/wireless
 cat > files/etc/config/wireless << EOF
 config wifi-device 'radio0'
@@ -19,8 +37,8 @@ config wifi-iface 'wifinet0'
         option mode 'ap'
         option network 'lan'
         option ssid '$WIFI24_SSID'
-        option encryption 'psk2'
-        option key '$WIFI24_PASS'
+        option encryption '$ENC24'
+        $KEY24
 
 config wifi-device 'radio1'
         option type 'mac80211'
@@ -34,6 +52,6 @@ config wifi-iface 'wifinet1'
         option mode 'ap'
         option network 'lan'
         option ssid '$WIFI5G_SSID'
-        option encryption 'psk2'
-        option key '$WIFI5G_PASS'
+        option encryption '$ENC5G'
+        $KEY5G
 EOF
