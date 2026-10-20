@@ -1,0 +1,47 @@
+name: Build ImmortalWrt RAX3000Me NAND DDR4 NO‑USB
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  TARGET: mediatek/filogic
+  PROFILE: cmcc_rax3000me
+  BRANCH: openwrt-24.10
+  REPO: hanwckf/immortalwrt
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout config
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential libncurses-dev bison flex libssl-dev libelf-dev \
+            git wget curl rsync unzip python3 python3-pip ccache device-tree-compiler
+
+      - name: Clone ImmortalWrt source
+        run: |
+          git clone -b ${{ env.BRANCH }} --depth=1 https://github.com/${{ env.REPO }}.git openwrt
+          cd openwrt
+          cp ../.config .
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Compile firmware
+        run: |
+          cd openwrt
+          make -j$(nproc) V=s
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: RAX3000Me‑DDR4‑NOUSB‑${{ env.BRANCH }}
+          path: |
+            openwrt/bin/targets/${{ env.TARGET }}/*cmcc_rax3000me*.itb
+            openwrt/bin/targets/${{ env.TARGET }}/*cmcc_rax3000me-nand-ddr4-preloader.bin
+            openwrt/bin/targets/${{ env.TARGET }}/*cmcc_rax3000me-nand-ddr4-bl31-uboot.fip
+            openwrt/bin/targets/${{ env.TARGET }}/sha256sums
