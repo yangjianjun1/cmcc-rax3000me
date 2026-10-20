@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout config
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # 核心修复这一行
 
       - name: Install dependencies
         run: |
