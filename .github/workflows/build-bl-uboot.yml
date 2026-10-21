@@ -1,0 +1,32 @@
+name: Build bl-mt798x WebUboot RAX3000Me DDR4 NAND
+on:
+  workflow_dispatch:
+
+env:
+  SOC: mt7981
+  BOARD: cmcc_rax3000me
+  DDR: ddr4
+  FLASH: spim-nand
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-aarch64-linux-gnu build-essential flex bison libssl-dev device-tree-compiler git
+
+      - name: Clone bl-mt798x
+        run: |
+          git clone https://github.com/hanwckf/bl-mt798x.git
+          cd bl-mt798x
+          SOC=${{ env.SOC }} BOARD=${{ env.BOARD }} DDR=${{ env.DDR }} FLASH=${{ env.FLASH }} ./build.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bl-mt798x-${{ env.BOARD }}-${{ env.DDR }}-${{ env.FLASH }}
+          path: |
+            bl-mt798x/out/*.bin
+            bl-mt798x/out/*.fip
