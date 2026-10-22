@@ -1,4 +1,4 @@
-name: Build ImmortalWrt RAX3000Me NAND DDR4 NO‑USB
+name: 编译 ImmortalWrt RAX3000Me NAND DDR4 无USB版
 on:
   push:
     branches: [ main ]
@@ -13,12 +13,12 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout config & files
+      - name: 拉取仓库配置和files文件
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Restore ccache cache
+      - name: 恢复ccache编译缓存
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -26,43 +26,43 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-${{ env.BRANCH }}-
 
-      - name: Install dependencies
+      - name: 安装编译依赖包
         run: |
           sudo apt update
           sudo apt install -y build-essential libncurses-dev bison flex libssl-dev libelf-dev \
             git wget curl rsync unzip python3 python3-pip ccache device-tree-compiler
 
-      - name: Clone ImmortalWrt source
+      - name: 拉取ImmortalWrt源码，导入配置、同步预置文件
         run: |
           git clone -b ${{ env.BRANCH }} --depth=1 https://${{ github.token }}@github.com/${{ env.REPO }}.git openwrt
           cd openwrt
           cp ../.config .
-          # 同步仓库根目录 files 预置文件（uci-defaults）
+          # 同步仓库files目录，uci-defaults预置脚本会打包进固件
           rsync -av ../files/ ./files/
-          # 删除冲突的 default-settings 包
+          # 删除会报错的default-settings、default-settings-chn包
           sed -i '/CONFIG_PACKAGE_default-settings/d' .config
           sed -i '/CONFIG_PACKAGE_default-settings-chn/d' .config
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Show ccache stats before build
+      - name: 配置ccache参数，打印缓存统计
         run: |
           ccache -M 10G
           ccache -o compression=true
           ccache -z
           ccache -s
 
-      - name: Compile firmware (with ccache)
+      - name: 开始编译固件（启用ccache加速）
         run: |
           cd openwrt
           export PATH="/usr/lib/ccache:$PATH"
           make -j$(nproc) V=s
 
-      - name: Show ccache stats after build
+      - name: 编译完成，再次打印ccache缓存统计
         run: |
           ccache -s
 
-      - name: Upload build artifacts
+      - name: 上传编译产出固件
         uses: actions/upload-artifact@v4
         with:
           name: RAX3000Me‑DDR4‑NOUSB‑${{ env.BRANCH }}
