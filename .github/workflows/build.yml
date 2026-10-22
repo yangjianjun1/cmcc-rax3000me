@@ -14,13 +14,12 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: 拉取仓库配置和files文件
+      - name: 拉取仓库配置与files
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      # APT包缓存
-      - name: 恢复APT缓存
+      - name: 恢复APT包缓存
         uses: actions/cache@v4
         with:
           path: ${{ env.APT_CACHE_DIR }}
@@ -28,19 +27,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-
 
-      # 配置apt缓存目录，不再替换清华源，使用系统默认源
-      - name: 配置APT缓存目录
+      - name: 配置APT缓存目录（不换源，使用官方源）
         run: |
           sudo mkdir -p ${{ env.APT_CACHE_DIR }}
           echo "Dir::Cache::archives \"${{ env.APT_CACHE_DIR }}\";" | sudo tee /etc/apt/apt.conf.d/99cache
 
-      # 精简依赖，libssl-dev 22.04 runner自带，也可以删掉它
-      - name: 安装精简编译依赖
+      - name: 安装编译依赖
         run: |
           sudo apt update
           sudo apt install -y libncurses-dev libelf-dev ccache device-tree-compiler
 
-      # ccache编译缓存
       - name: 恢复ccache编译缓存
         uses: actions/cache@v4
         with:
@@ -49,32 +45,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-${{ env.BRANCH }}-
 
-      - name: 拉取ImmortalWrt源码，导入配置
+      - name: 拉取ImmortalWrt源码，导入配置（修复顺序：sed在feeds之前）
         run: |
           git clone -b ${{ env.BRANCH }} --depth=1 https://${{ github.token }}@github.com/${{ env.REPO }}.git openwrt
           cd openwrt
           cp ../.config .
-          rsync -av ../files/ ./files/
+          # 提前移除default-settings相关，解决依赖报错
           sed -i '/CONFIG_PACKAGE_default-settings/d' .config
           sed -i '/CONFIG_PACKAGE_default-settings-chn/d' .config
+          rsync -av ../files/ ./files/
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 配置ccache
+      - name: 配置ccache参数
         run: |
           ccache -M 10G
           ccache -o compression=true
           ccache -z
           ccache -s
 
-      - name: 开始编译固件（启用ccache加速）
+      - name: 开始编译固件
         run: |
           cd openwrt
           export PATH="/usr/lib/ccache:$PATH"
           make -j$(nproc) V=s
 
-      - name: 打印ccache缓存统计
-        run: ccache -s
+      - name: 打印ccache统计
+        run: |
+          ccache -s
 
       - name: 上传固件产物
         uses: actions/upload-artifact@v4
