@@ -9,6 +9,7 @@ env:
   BRANCH: openwrt-24.10
   REPO: immortalwrt/immortalwrt
   CCACHE_DIR: ${{ github.workspace }}/.ccache
+  APT_CACHE_DIR: ${{ github.workspace }}/.aptcache
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -18,6 +19,34 @@ jobs:
         with:
           persist-credentials: false
 
+      # APT包缓存
+      - name: 恢复APT缓存
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: ${{ runner.os }}-apt-openwrt
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      # 更换清华源 + 开启apt缓存
+      - name: 配置清华APT源+缓存目录
+        run: |
+          sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+          sudo tee /etc/apt/sources.list <<-'EOF'
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse
+EOF
+          sudo mkdir -p ${{ env.APT_CACHE_DIR }}
+          echo "Dir::Cache::archives \"${{ env.APT_CACHE_DIR }}\";" | sudo tee /etc/apt/apt.conf.d/99cache
+
+      # 只安装5个缺失依赖
+      - name: 安装精简编译依赖
+        run: |
+          sudo apt update
+          sudo apt install -y libncurses-dev libssl-dev libelf-dev ccache device-tree-compiler
+
+      # ccache编译缓存
       - name: 恢复ccache编译缓存
         uses: actions/cache@v4
         with:
@@ -26,26 +55,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-${{ env.BRANCH }}-
 
-      - name: 安装编译依赖包
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential libncurses-dev bison flex libssl-dev libelf-dev \
-            git wget curl rsync unzip python3 python3-pip ccache device-tree-compiler
-
-      - name: 拉取ImmortalWrt源码，导入配置、同步预置文件
+      - name: 拉取ImmortalWrt源码，导入配置
         run: |
           git clone -b ${{ env.BRANCH }} --depth=1 https://${{ github.token }}@github.com/${{ env.REPO }}.git openwrt
           cd openwrt
           cp ../.config .
-          # 同步仓库files目录，uci-defaults预置脚本会打包进固件
           rsync -av ../files/ ./files/
-          # 删除会报错的default-settings、default-settings-chn包
           sed -i '/CONFIG_PACKAGE_default-settings/d' .config
           sed -i '/CONFIG_PACKAGE_default-settings-chn/d' .config
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 配置ccache参数，打印缓存统计
+      - name: 配置ccache
         run: |
           ccache -M 10G
           ccache -o compression=true
@@ -58,11 +79,10 @@ jobs:
           export PATH="/usr/lib/ccache:$PATH"
           make -j$(nproc) V=s
 
-      - name: 编译完成，再次打印ccache缓存统计
-        run: |
-          ccache -s
+      - name: 打印ccache缓存统计
+        run: ccache -s
 
-      - name: 上传编译产出固件
+      - name: 上传固件产物
         uses: actions/upload-artifact@v4
         with:
           name: RAX3000Me‑DDR4‑NOUSB‑${{ env.BRANCH }}
