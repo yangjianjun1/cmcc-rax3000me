@@ -3,21 +3,28 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
-
 env:
   TARGET: mediatek/filogic
   PROFILE: cmcc_rax3000me
   BRANCH: openwrt-24.10
   REPO: immortalwrt/immortalwrt
-
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout config
+      - name: Checkout config & files
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Restore ccache cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.os }}-ccache-${{ env.BRANCH }}-${{ hashFiles('.config') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ env.BRANCH }}-
 
       - name: Install dependencies
         run: |
@@ -30,13 +37,30 @@ jobs:
           git clone -b ${{ env.BRANCH }} --depth=1 https://${{ github.token }}@github.com/${{ env.REPO }}.git openwrt
           cd openwrt
           cp ../.config .
+          # 同步仓库根目录 files 预置文件（uci-defaults）
+          rsync -av ../files/ ./files/
+          # 删除冲突的 default-settings 包
+          sed -i '/CONFIG_PACKAGE_default-settings/d' .config
+          sed -i '/CONFIG_PACKAGE_default-settings-chn/d' .config
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Compile firmware
+      - name: Show ccache stats before build
+        run: |
+          ccache -M 10G
+          ccache -o compression=true
+          ccache -z
+          ccache -s
+
+      - name: Compile firmware (with ccache)
         run: |
           cd openwrt
+          export PATH="/usr/lib/ccache:$PATH"
           make -j$(nproc) V=s
+
+      - name: Show ccache stats after build
+        run: |
+          ccache -s
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
