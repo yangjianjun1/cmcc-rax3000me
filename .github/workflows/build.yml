@@ -28,19 +28,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-
 
-      # 配置清华源，修复EOF语法错误
-      - name: 配置清华APT源+缓存目录
+      # 配置apt缓存目录，不再替换清华源，使用系统默认源
+      - name: 配置APT缓存目录
         run: |
-          sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-          sudo printf "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse\n" > /etc/apt/sources.list
           sudo mkdir -p ${{ env.APT_CACHE_DIR }}
           echo "Dir::Cache::archives \"${{ env.APT_CACHE_DIR }}\";" | sudo tee /etc/apt/apt.conf.d/99cache
 
-      # 只安装5个缺失依赖
+      # 精简依赖，libssl-dev 22.04 runner自带，也可以删掉它
       - name: 安装精简编译依赖
         run: |
           sudo apt update
-          sudo apt install -y libncurses-dev libssl-dev libelf-dev ccache device-tree-compiler
+          sudo apt install -y libncurses-dev libelf-dev ccache device-tree-compiler
 
       # ccache编译缓存
       - name: 恢复ccache编译缓存
