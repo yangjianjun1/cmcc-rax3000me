@@ -28,15 +28,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-
 
-      # 更换清华源 + 开启apt缓存
+      # 配置清华源，修复EOF语法错误
       - name: 配置清华APT源+缓存目录
         run: |
           sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-          sudo tee /etc/apt/sources.list <<-'EOF'
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse
-EOF
+          sudo printf "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse\n" > /etc/apt/sources.list
           sudo mkdir -p ${{ env.APT_CACHE_DIR }}
           echo "Dir::Cache::archives \"${{ env.APT_CACHE_DIR }}\";" | sudo tee /etc/apt/apt.conf.d/99cache
 
