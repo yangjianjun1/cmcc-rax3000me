@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
 env:
   SOC: mt7981
-  BOARD: cmcc_rax3000m
+  BOARD: cmcc_rax3000me
   DDR: ddr4
-  FLASH: spim-nand
+  FLASH: nand
   APT_CACHE_DIR: ${{ github.workspace }}/.aptcache
 jobs:
   build:
@@ -25,24 +25,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-
 
-      - name: 更换清华APT源 + 配置apt缓存目录
+      - name: 配置apt缓存目录（保持Azure官方源不变）
         run: |
-          sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-          sudo printf "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse\ndeb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse\n" > /etc/apt/sources.list
           sudo mkdir -p ${{ env.APT_CACHE_DIR }}
-          echo "Dir::Cache::archives \"${{ env.APT_CACHE_DIR }}\";" | sudo tee /etc/apt/apt.conf.d/99cache
+          echo 'Dir::Cache::archives "${{ env.APT_CACHE_DIR }}";' | sudo tee /etc/apt/apt.conf.d/99cache
 
-      - name: 安装缺失编译依赖（仅装系统没有的）
+      - name: 安装编译依赖
         run: |
           sudo apt update
-          sudo apt install -y gcc-aarch64-linux-gnu libssl-dev device-tree-compiler
+          sudo apt install -y gcc-aarch64-linux-gnu libssl-dev device-tree-compiler build-essential git python3
 
-      - name: 使用仓库内置bl-mt798x源码编译
+      - name: 编译 bl-mt798x
         run: |
           cd bl-mt798x
           SOC=${{ env.SOC }} BOARD=${{ env.BOARD }} DDR=${{ env.DDR }} FLASH=${{ env.FLASH }} ./build.sh
 
-      - name: 上传编译产物
+      - name: 上传编译产出
         uses: actions/upload-artifact@v4
         with:
           name: bl-mt798x-${{ env.BOARD }}-${{ env.DDR }}-${{ env.FLASH }}
