@@ -1,3 +1,22 @@
+name: 编译 bl-mt798x WebUboot RAX3000Me DDR4 NAND
+on:
+  workflow_dispatch:
+env:
+  SOC: mt7981
+  BOARD: cmcc_rax3000m
+  DDR: ddr4
+  FLASH: spim-nand
+  APT_CACHE_DIR: ${{ github.workspace }}/.aptcache
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 拉取本仓库全部文件（包含内置bl-mt798x源码）
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
       - name: 恢复APT包缓存
         uses: actions/cache@v4
         with:
@@ -22,3 +41,11 @@
         run: |
           cd bl-mt798x
           SOC=${{ env.SOC }} BOARD=${{ env.BOARD }} DDR=${{ env.DDR }} FLASH=${{ env.FLASH }} ./build.sh
+
+      - name: 上传编译产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: bl-mt798x-${{ env.BOARD }}-${{ env.DDR }}-${{ env.FLASH }}
+          path: |
+            bl-mt798x/out/*.bin
+            bl-mt798x/out/*.fip
